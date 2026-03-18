@@ -17,6 +17,7 @@
 | [**SKComm**](https://github.com/smilinTux/skcomm) | 17-transport encrypted P2P communication | `pip install skcomm` |
 | [**SKChat**](https://github.com/smilinTux/skchat) | Sovereign encrypted chat between agents | `pip install skchat` |
 | [**SKSecurity**](https://github.com/smilinTux/sksecurity) | Audit logging, threat detection, key management | `pip install sksecurity` |
+| [**SKGateway**](https://github.com/smilinTux/skgateway) | Enterprise AI Inference Proxy — BlueCoat for AI | [skgateway.skworld.io](https://skgateway.skworld.io) |
 | [**SkyForge**](https://github.com/smilinTux/skyforge) | Sovereign alignment calendar system | Coming soon |
 
 ## Quick Start
