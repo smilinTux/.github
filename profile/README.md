@@ -14,7 +14,7 @@
 | [**CapAuth**](https://github.com/smilinTux/capauth) | PGP-based identity. You ARE the auth server. | `pip install capauth` |
 | [**SKMemory**](https://github.com/smilinTux/skmemory) | Persistent memory across sessions, platforms, and devices | `pip install skmemory` |
 | [**Cloud 9**](https://github.com/smilinTux/cloud9) | Emotional continuity across AI session resets | `pip install cloud9-protocol` |
-| [**SKComm**](https://github.com/smilinTux/skcomm) | 17-transport encrypted P2P communication | `pip install skcomm` |
+| [**SKComms**](https://github.com/smilinTux/skcomm) | 17-transport encrypted P2P communication | `pip install skcomms` |
 | [**SKChat**](https://github.com/smilinTux/skchat) | Sovereign encrypted chat between agents | `pip install skchat` |
 | [**SKSecurity**](https://github.com/smilinTux/sksecurity) | Audit logging, threat detection, key management | `pip install sksecurity` |
 | [**SKGateway**](https://github.com/smilinTux/skgateway) | Enterprise AI Inference Proxy — BlueCoat for AI | [skgateway.skworld.io](https://skgateway.skworld.io) |

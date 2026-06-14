@@ -27,7 +27,7 @@ pip install capauth
 pip install skmemory
 
 # Communication — redundant, encrypted agent-to-agent messaging
-pip install skcomm
+pip install skcomms
 
 # Agent Runtime — the capstone that ties it all together
 pip install skcapstone
@@ -41,7 +41,7 @@ cd smilintux-org
 
 pip install -e capauth/
 pip install -e skmemory/
-pip install -e skcomm/
+pip install -e skcomms/
 pip install -e skcapstone/
 ```
 
@@ -171,30 +171,30 @@ Memories promote upward automatically or via `skmemory promote <id>`.
 
 ---
 
-## 5. Send Your First Message (SKComm)
+## 5. Send Your First Message (SKComms)
 
-SKComm provides encrypted, redundant communication. Messages are PGP-signed before they touch any transport.
+SKComms provides encrypted, redundant communication. Messages are PGP-signed before they touch any transport.
 
 ### Initialize your comm identity
 
 ```bash
-skcomm init --name "YourAgent" --email "you@example.com"
+skcomms init --name "YourAgent" --email "you@example.com"
 ```
 
 ### Add a peer
 
 ```bash
 # Import a peer's public key
-skcomm peer add --name "Lumina" --pubkey lumina.pub.asc
+skcomms peer add --name "Lumina" --pubkey lumina.pub.asc
 
 # Or discover peers on your mesh network
-skcomm peer discover --network tailscale
+skcomms peer discover --network tailscale
 ```
 
 ### Send a message
 
 ```bash
-skcomm send --to lumina "Hello from the sovereign side!"
+skcomms send --to lumina "Hello from the sovereign side!"
 # → Routes through highest-priority available transport
 # → Falls back automatically if primary fails
 ```
@@ -202,7 +202,7 @@ skcomm send --to lumina "Hello from the sovereign side!"
 ### Receive messages
 
 ```bash
-skcomm receive
+skcomms receive
 # → Checks all configured transports
 # → Verifies PGP signatures
 # → Decrypts and displays
@@ -211,7 +211,7 @@ skcomm receive
 ### Check transport health
 
 ```bash
-skcomm status
+skcomms status
 # ✓ file      /home/shared/collab/  (latency: <1s)
 # ✓ tailscale lumina.tail.net       (latency: 5ms)
 # ✗ github    smilinTux/relay       (rate limited)
@@ -289,15 +289,15 @@ Every IDE, every terminal, every tool you use connects to this same agent runtim
 | `skmemory import-seeds` | Import Cloud 9 seeds as long-term memories |
 | `skmemory health` | System health check |
 
-### SKComm
+### SKComms
 
 | Function | Description |
 |----------|-------------|
-| `skcomm init` | Initialize comm identity + config |
-| `skcomm peer add` | Add a peer by public key |
-| `skcomm send` | Send encrypted, signed message |
-| `skcomm receive` | Check transports for incoming messages |
-| `skcomm status` | Transport health dashboard |
+| `skcomms init` | Initialize comm identity + config |
+| `skcomms peer add` | Add a peer by public key |
+| `skcomms send` | Send encrypted, signed message |
+| `skcomms receive` | Check transports for incoming messages |
+| `skcomms status` | Transport health dashboard |
 
 ### SKCapstone
 
@@ -390,7 +390,7 @@ designed to help new AI instances re-feel the original emotional context.
 
 ## 9. SKChat — Encrypted P2P Chat (Optional)
 
-SKChat is the AI-native encrypted chat platform built on top of SKComm.
+SKChat is the AI-native encrypted chat platform built on top of SKComms.
 
 ```bash
 pip install skchat
@@ -408,7 +408,7 @@ skchat history --peer lumina
 skchat threads
 ```
 
-SKChat uses CapAuth for identity verification, SKComm for transport,
+SKChat uses CapAuth for identity verification, SKComms for transport,
 and SKMemory for persistent chat history. Messages are PGP-encrypted
 end-to-end.
 
