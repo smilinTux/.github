@@ -26,10 +26,11 @@ Organized the way [skworld.io](https://skworld.io) lays the whole vertical out: 
 
 ### 02 Infrastructure
 
-> **New: SKPatch.** Patch at AI speed. Every image pinned to a digest, every CVE matched against the fleet continuously, Renovate opening the PRs, a release gate deciding what ships, critical fixes going out the same day. Code is landing now; see it as the spotlight on [skworld.io](https://skworld.io).
+> **New: SKPatch.** Patch at AI speed. Every image pinned to a digest, every CVE matched against the fleet continuously, Renovate opening the PRs, a release gate deciding what ships, critical fixes going out the same day. Code: [smilinTux/skpatch](https://github.com/smilinTux/skpatch). Site: [skpatch.skworld.io](https://skpatch.skworld.io). Also the spotlight on [skworld.io](https://skworld.io).
 
 | Repo | What it does | Site | Install |
 |---|---|---|---|
+| [SKPatch](https://github.com/smilinTux/skpatch) | Patch at AI speed: every image pinned by digest, inventoried daily, SBOM into Dependency-Track, continuous CVE matching, Renovate PRs, a release gate, same-day critical lane. | [skpatch.skworld.io](https://skpatch.skworld.io) | `pip install skpatch` (soon); deployed via SKStacks |
 | [SKStacks](https://github.com/smilinTux/skstacks) | AI-first sovereign infrastructure framework (Swarm, Kubernetes, RKE2). The deploy layer everything else here runs on. | [skstacks.skworld.io](https://skstacks.skworld.io) | Docker/Swarm |
 | [SKGateway](https://github.com/smilinTux/skgateway) | Enterprise AI inference proxy. Routes, monitors, audits, and secures all AI inference traffic. BlueCoat for AI. | [skgateway.skworld.io](https://skgateway.skworld.io) | Docker/Swarm via SKStacks |
 | [SKHarness](https://github.com/smilinTux/skharness) | The sovereign autocode engine: sessions plus the execution harness that drives the agent swarm. | [skharness.skworld.io](https://skharness.skworld.io) | `pip install skharness` |
