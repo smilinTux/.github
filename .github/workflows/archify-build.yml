@@ -1,0 +1,195 @@
+name: archify-build
+
+# Reusable workflow (workflow_call ONLY). Regenerates every diagrams/*.html in the
+# CALLER repo from its diagrams/*.json, using a pinned, reviewed build of Archify
+# (https://github.com/tt-a1i/archify): tag v3.2.0, commit
+# 208acba8d412335185b2056fedf54b3405df43fb (MIT license). This is the normative
+# implementation of the "Required for every -skworld-io site repo" rule in
+# smilinTux/sk-standards standards/ARCHITECTURE_AND_DATAFLOW_STANDARD.md, with the
+# authoring guide at standards/archify-diagrams.md in that repo.
+#
+# Archify is pinned by TAG AND COMMIT SHA TOGETHER, never a floating tag: the
+# checkout below resolves the commit directly, and a verification step confirms
+# that commit is still what the tag v3.2.0 names upstream. Bumping the pin is a
+# reviewed edit to this file, not an automatic update. There is exactly one env
+# var this workflow depends on to keep Archify from phoning home for its own
+# release-update check: ARCHIFY_UPDATE_CHECK_DISABLED=1, set below on every
+# invocation.
+#
+# Archify is NOT the package named "archify" on the npm registry. That package is
+# an unrelated, unreviewed project at version 0.0.4 (checked 2026-11-06: `npm view
+# archify versions` returns ["0.0.2","0.0.3","0.0.4"], nothing near 3.2.0). The
+# real tool ships only as source on GitHub, so this workflow clones tt-a1i/archify
+# by commit rather than installing anything from npm by that name.
+#
+# What this does, by event:
+#   pull_request  - regenerates into a scratch copy of diagrams/, diffs it against
+#                    the committed diagrams/, and FAILS if they differ (stale HTML).
+#   push to main   - regenerates in place and, if anything changed, commits the
+#                    regenerated HTML back as "Lumina <lumina@skworld.io>".
+#   anything else  - regenerates and reports, same as pull_request, without commit.
+#
+# A repo with no diagrams/*.json yet is a no-op pass, not a failure: adoption of
+# the site-diagram rule is per repo and this workflow must stay green for a repo
+# that has not adopted it yet.
+#
+# Caller (see .github/workflows/archify.yml in this repo for the exact file a site
+# repo drops in):
+#
+#   permissions:
+#     contents: write   # only exercised on push to main; read is enough otherwise
+#   jobs:
+#     archify:
+#       uses: smilinTux/.github/.github/workflows/archify-build.yml@<pin to this
+#         repo's main commit SHA, e.g. the one that merges this file>
+
+on:
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+env:
+  ARCHIFY_REPO: tt-a1i/archify
+  ARCHIFY_TAG: v3.2.0
+  ARCHIFY_SHA: 208acba8d412335185b2056fedf54b3405df43fb
+  ARCHIFY_UPDATE_CHECK_DISABLED: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the caller repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Look for diagrams/*.json
+        id: inventory
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(diagrams/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No diagrams/*.json in this repo yet; nothing for archify-build to do."
+            echo "has-diagrams=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-diagrams=true" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "${files[@]}"
+          fi
+
+      - name: Check out Archify at the pinned commit
+        if: steps.inventory.outputs.has-diagrams == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.ARCHIFY_REPO }}
+          ref: ${{ env.ARCHIFY_SHA }}
+          path: .archify-src
+          fetch-depth: 1
+
+      - name: Verify the pinned commit still matches the pinned tag
+        if: steps.inventory.outputs.has-diagrams == 'true'
+        run: |
+          set -euo pipefail
+          actual="$(git -C .archify-src rev-parse HEAD)"
+          if [ "$actual" != "$ARCHIFY_SHA" ]; then
+            echo "::error::Archify checkout resolved to $actual, expected the pinned $ARCHIFY_SHA. Refusing a floating resolve."
+            exit 1
+          fi
+          # Best-effort cross-check that the TAG still names the SAME commit upstream.
+          # A mismatch here is drift worth knowing about, never a silent re-pin.
+          if git -C .archify-src fetch --tags --depth=1 origin "refs/tags/$ARCHIFY_TAG:refs/tags/$ARCHIFY_TAG" 2>/dev/null; then
+            tag_sha="$(git -C .archify-src rev-list -n 1 "$ARCHIFY_TAG" 2>/dev/null || true)"
+            if [ -n "$tag_sha" ] && [ "$tag_sha" != "$ARCHIFY_SHA" ]; then
+              echo "::error::Tag $ARCHIFY_TAG now points at $tag_sha upstream, not the pinned $ARCHIFY_SHA. This is tag drift; update the pin deliberately in a reviewed PR, never silently."
+              exit 1
+            fi
+          fi
+          echo "Archify pinned at $ARCHIFY_SHA ($ARCHIFY_TAG) confirmed."
+
+      - name: Set up Node.js
+        if: steps.inventory.outputs.has-diagrams == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Install Archify's pinned CLI dependencies
+        if: steps.inventory.outputs.has-diagrams == 'true'
+        working-directory: .archify-src/archify
+        run: npm ci --no-audit --no-fund
+
+      - name: Regenerate diagrams/*.html from diagrams/*.json
+        if: steps.inventory.outputs.has-diagrams == 'true'
+        run: |
+          set -euo pipefail
+          cli="$GITHUB_WORKSPACE/.archify-src/archify/bin/archify.mjs"
+          # --out-dir sends finalize's receipt sidecars (*.finalize.json,
+          # *.finalize-summary.json, *.browser-check.json) somewhere other
+          # than diagrams/. Without it they land next to the HTML and the
+          # later `git diff -- diagrams` / `git add diagrams` steps would
+          # pick them up as new files: a pull request would stay green on a
+          # genuinely stale HTML (the diff would be "receipts added", not
+          # "HTML changed"), and a push to main would commit evidence files
+          # that do not belong in the site repo's history.
+          evidence_dir="$RUNNER_TEMP/archify-evidence"
+          mkdir -p "$evidence_dir"
+          for json in diagrams/*.json; do
+            type=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['diagram_type'])" "$json")
+            quality=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['meta'].get('quality_profile','showcase'))" "$json")
+            outname=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['meta']['output'])" "$json")
+            outpath="$(dirname "$json")/$outname"
+            echo "::group::$json -> $outpath (type=$type, quality=$quality)"
+            node "$cli" finalize "$type" "$json" "$outpath" --quality "$quality" --out-dir "$evidence_dir" --json
+            echo "::endgroup::"
+          done
+          # The delivery provenance sidecar (*.delivery.json) is written next
+          # to the artifact unconditionally; --out-dir does not relocate it.
+          # The reference implementation (skpatch-skworld-io) commits only the
+          # JSON source and the generated HTML, so match that: drop every
+          # sidecar finalize can leave beside the output, regardless of which
+          # flag did or did not catch it.
+          find diagrams -maxdepth 1 -type f \( \
+            -name '*.delivery.json' -o -name '*.delivery-pending.json' \
+            -o -name '*.finalize.json' -o -name '*.finalize-summary.json' \
+            -o -name '*.browser-check.json' \) -delete
+          echo "finalize evidence receipts: $evidence_dir (not part of the site repo's diagrams/)"
+
+      - name: Fail a pull request on stale committed HTML
+        if: steps.inventory.outputs.has-diagrams == 'true' && github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- diagrams; then
+            echo "::error::diagrams/*.html is stale against diagrams/*.json. Regenerate locally (standards/archify-diagrams.md in smilinTux/sk-standards has the exact command) and commit the result in this PR."
+            git --no-pager diff --stat -- diagrams
+            exit 1
+          fi
+          echo "diagrams/*.html already matches its JSON source."
+
+      - name: Commit regenerated HTML on push to main
+        if: steps.inventory.outputs.has-diagrams == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- diagrams; then
+            echo "diagrams/*.html already matches its JSON source; nothing to commit."
+            exit 0
+          fi
+          git config user.name "Lumina"
+          git config user.email "lumina@skworld.io"
+          git add diagrams
+          git commit \
+            -m "chore(diagrams): regenerate Archify HTML from diagrams/*.json" \
+            -m "Automated by archify-build (smilinTux/.github), Archify pinned at ${ARCHIFY_TAG} (${ARCHIFY_SHA})."
+          git push
+
+      - name: Report non pull_request, non main-push runs
+        if: steps.inventory.outputs.has-diagrams == 'true' && github.event_name != 'pull_request' && !(github.event_name == 'push' && github.ref == 'refs/heads/main')
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- diagrams; then
+            echo "::warning::diagrams/*.html differs from diagrams/*.json on this ref (${{ github.ref }}); only a push to main commits the regeneration."
+            git --no-pager diff --stat -- diagrams
+          else
+            echo "diagrams/*.html already matches its JSON source."
+          fi

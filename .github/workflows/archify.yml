@@ -1,0 +1,46 @@
+name: archify
+
+# THE CALLER SNIPPET a `-skworld-io` site repo drops into its own
+# .github/workflows/archify.yml. The reusable build lives once, in
+# archify-build.yml in THIS repo (smilinTux/.github); every site repo calls it
+# rather than copying it, so the pin and the regeneration logic live in one
+# place. Full rule: smilinTux/sk-standards standards/ARCHITECTURE_AND_DATAFLOW_STANDARD.md
+# "Required for every -skworld-io site repo"; authoring guide:
+# standards/archify-diagrams.md in that same repo.
+#
+# This copy of the file is ALSO this repo's own dogfood run: smilinTux/.github
+# itself carries no diagrams/*.json, so every run below takes the early
+# "nothing to build" exit in archify-build.yml and stays green. That is what
+# proves the reusable workflow still parses and still runs cleanly as a
+# workflow_call target, the same "this repo is the reference implementation of
+# its own rule" posture smilinTux/sk-standards holds for docs-check.yml.
+#
+# A site repo adopting this makes exactly ONE change to the `uses:` line below:
+# replace the local path with the external, SHA-pinned form:
+#
+#   uses: smilinTux/.github/.github/workflows/archify-build.yml@<commit-sha>
+#
+# Pin `<commit-sha>` to a real commit on smilinTux/.github's default branch
+# that carries archify-build.yml, never to a branch name. Find it with:
+#   gh api repos/smilinTux/.github/commits --jq '.[0].sha'
+# or by checking that file's blame on GitHub. Re-pin deliberately, in a
+# reviewed PR, whenever you want to pick up a change to archify-build.yml.
+#
+# Branches below cover both cases on purpose: `main` is what a `-skworld-io`
+# site repo actually uses (confirmed against skpatch-skworld-io), and
+# `master` is smilinTux/.github's own default branch, so this same file
+# dogfoods correctly here too. A site repo MAY trim this list to just its own
+# default branch; it does not need both.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  archify:
+    uses: ./.github/workflows/archify-build.yml
